@@ -1,0 +1,103 @@
+-- continuing with sql
+-- somewhat arbitrary but illustrative query
+SELECT Scientific_name, Nest_count FROM    
+    (SELECT Species, COUNT(*) AS Nest_count FROM Bird_nests
+        WHERE Site = 'nome'
+        GROUP BY Species
+        HAVING Nest_count > 10
+        ORDER BY Species
+        LIMIT 2) JOIN Species
+        ON Species = CODE;
+
+
+INSERT INTO a VALUES (1,1), (2, 2), (3, 3), (4, 4), (5, 5);
+SELECT * FROM b;
+
+-- the joins we've been doing so far hve been "inner" joins
+SELECT * FROM a JOIN b USING (common); 
+SELECT * FROM a JOIN b ON a.common = b.common;
+
+-- by doing an "outer" join --- either "left" or "right" --- we'll add certain missing rows
+SELECT * FROM a LEFT JOIN b ON a.common = b.common;
+SELECT * FROM a RIGHT JOIN b ON a.common = b.common;
+
+-- a running example: what species do *not* have any nest data
+SELECT COUNT(*) FROM Species;
+SELECT COUNT(DISTINCT Species) FROM Bird_nests;
+
+-- method 1
+SELECT Code FROM Species
+    WHERE Code NOT IN (SELECT DISTINCT Species FROM Bird_nests);
+SELECT Code FROM Species
+    Where Code NOT IN (SELECT Species FROM Bird_nests);
+
+-- method 2
+SELECT Code, Species FROM Species LEFT JOIN Bird_nests
+    ON Code = Species
+    WHERE Species IS NULL;
+
+-- its also possible to join a table with itself, a so-called "self-join"
+
+-- Understanding a limitation of DuckDB
+SELECT Nest_ID, COUNT(*)
+    FROM Bird_nests JOIN Bird_eggs
+    USING (Nest_ID)
+    WHERE Nest_id Like '13B%'
+    GROUP BY Nest_Id;
+
+-- lets add in observer
+SELECT Nest_ID, Observer, COUNT(*) AS Num_eggs
+    FROM Bird_nests JOIN Bird_eggs
+    USING (Nest_ID)
+    WHERE Nest_id Like '13B%'
+    GROUP BY Nest_Id;
+
+SELECT * FROM Bird_nests JOIN Bird_eggs
+USING (Nest_ID)
+WHERE Nest_ID LIKE '13B%';
+
+-- there should not be dupes for the observer col because each unique nest_id cooresponds to a unique val in observer, and nest_id is the primary key
+
+-- duckdb solution #1:
+SELECT Nest_id, observer, COUNT(*) as num_eggs
+    From Bird_nests join Bird_eggs
+    using (Nest_id)
+    WHERE Nest_id LIKE '13B%'
+    GROUP BY Nest_ID, Observer;
+
+-- solution 2
+SELECT Nest_ID, ANY_VALUE(Observer) AS Observer, COUNT(*) AS Num_eggs
+    FROM Bird_nests JOIN Bird_eggs
+    USING (Nest_ID)
+    WHERE Nest_ID LIKE '13B%'
+    GROUP BY Nest_ID;
+
+-- views: a virtual table
+CREATE VIEW my_nests AS
+    SELECT Nest_ID, ANY_VALUE(Observer) AS Observer, COUNT(*) AS Num_eggs
+    FROM Bird_nests JOIN Bird_eggs
+    USING (Nest_ID)
+    WHERE Nest_ID LIKE '13B%'
+    GROUP BY Nest_ID;
+
+SELECT * FROM my_nests;
+.tables
+
+-- what about modifications (insert, updates, deletes) on a view? possib;e?
+-- it depends
+--- whether its theoretically possible
+--- how smart the database is
+
+-- last topic: set operations
+-- union, union all, intersect, except
+
+SELECT * FROM Bird_eggs LIMIT 5;
+
+SELECT Book_page, Year, Site, Nest_ID, Egg_num, Length * 25.4 AS Length, Width * 25.4 AS Width
+    FROM Bird_eggs
+    WHERE Book_page LIKE 'b14%';
+
+--# Method 3 for running example
+SELECT Code FROM Species
+EXCEPT
+SELECT DISTINCT Species FROM Bird_nests;
