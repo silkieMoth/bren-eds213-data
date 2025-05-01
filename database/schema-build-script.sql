@@ -1,4 +1,3 @@
--- Active: 1735341589415@@localhost@3306
 .nullvalue -NULL-
 
 CREATE TABLE Species (
